@@ -1,4 +1,4 @@
-const width = 700,
+const width = 900,
     height = 600,
     pi = Math.PI,
     playerSpeed = 7;
