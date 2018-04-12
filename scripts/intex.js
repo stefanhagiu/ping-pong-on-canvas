@@ -7,9 +7,13 @@ const UpArrow = 38,
     DownArrow = 40,
     WArrow = 87,
     SArrow = 83;
+    CKey = 67;
+    VKey = 86;
 
 let canvas, ctx, keystate,
-    player, ai, ball;
+    player, ai, ball, ballChange;
+
+let ballIteration = 0;
 
 Game = {
     playerOne: null,
@@ -38,6 +42,7 @@ player = function (option) {
         playerSpeed: option.playerSpeed,
         width: option.width || 20,
         height: option.height || 100,
+        color: option.color || "#fff",
         update: function () {
             if (keystate[this.upArrow]) {
                 this.y -= this.playerSpeed;
@@ -48,6 +53,8 @@ player = function (option) {
             this.y = Math.max(Math.min(this.y, height -this.height), 0);
         },
         draw: function () {
+            ctx.beginPath();
+            ctx.fillStyle = this.color;
             ctx.fillRect(this.x, this.y, this.width, this.height);
         }, 
     };   
@@ -58,12 +65,14 @@ ai = function (option) { return {
         y: option.y,
         width: option.width || 20,
         height: option.height || 100,
+        color: option.color || "#fff",
         update: function () {
             let destination = Game.ball.y - (this.height -  Game.ball.side) / 2;
             this.y += (destination - this.y) * 0.1;
             this.y = Math.max(Math.min(this.y, height -this.height), 0);
         },
         draw: function () {
+            ctx.fillStyle = this.color;
             ctx.fillRect(this.x, this.y, this.width, this.height);
         },    
     };
@@ -76,8 +85,10 @@ ball = function (option) {
         side: option.side || 20,
         vel: option.vel,
         speed: option.speed || 10,
+        color: option.color || "#fff",
         gWidth: option.gWidth,
         gHeight: option.gHeight,
+        phi: 0,
         init: function (width, height) {
             this.x = (this.gWidth - this.side) / 2;
             this.y = (this.gHeight - this.side) / 2;
@@ -86,6 +97,8 @@ ball = function (option) {
             let r = Math.random();
             let side = r > 0.5 ? 1 : -1;
             let phi = 0.1 * pi * ( 1 - 2 * r);
+
+            this.phi = phi;
 
             this.vel = {
                 x:  side * this.speed * Math.cos(phi),
@@ -99,6 +112,36 @@ ball = function (option) {
                 && by < ay + ah;
         },
         update: function () {
+            let side = this.vel.x < 0 ? -1 : 1;
+            
+            switch (ballIteration) {
+                case 0:
+                    this.color = "#fff";
+                    break;
+                case 1:
+                    this.color = "#5add91";
+                    this.speed = 15;
+                    this.vel.x = side * this.speed * Math.cos(this.phi);
+                    break;
+                case 2:
+                    this.color = "#fff";
+                    this.speed = 8;
+                    this.vel.x = side * this.speed * Math.cos(this.phi);
+                    break;
+                case 3:
+                    this.color = "#303030";
+                    this.speed = 0.1;
+                    this.vel.x = side * this.speed * Math.cos(this.phi);
+                    break;
+                case 4:
+                    this.color = "#ff9f0f";
+                    this.speed = 10;
+                    this.vel.x = side * this.speed * Math.cos(this.phi);
+                    break;
+                default:
+                    break;
+            }
+
             this.x += this.vel.x;
             this.y += this.vel.y;
 
@@ -122,6 +165,8 @@ ball = function (option) {
                 let n = (this.y + this.side - pdle.y) / (pdle.height + this.side);
                 let phi = 0.25 * pi * (2 * n - 1); // pi/ 4 = 45
 
+                this.phi = phi;
+
                 // smashing system ?
                 let smash = Math.abs(phi) > 0.2 * pi ? 1.5 : 1;
 
@@ -135,7 +180,22 @@ ball = function (option) {
 
         },
         draw: function () {
+            ctx.fillStyle = this.color;
             ctx.fillRect(this.x, this.y, this.side, this.side);
+            if (ballIteration === 2) {
+                ctx.beginPath();
+                ctx.ellipse(this.x + 1, (this.y + (this.side / 2)), (this.side / 2 - 6), (this.side / 2), 0, (1.5 * pi), (0.5 * pi));
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = "red";
+                ctx.stroke();
+                ctx.closePath();
+                ctx.beginPath();
+                ctx.ellipse((this.x + this.side - 1), (this.y + (this.side / 2)), (this.side / 2 - 6), (this.side / 2), 0, (0.5 * pi), (1.5 * pi));
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = "red";
+                ctx.stroke();
+                ctx.closePath();
+            }
         },    
     };
 };
@@ -143,9 +203,16 @@ ball = function (option) {
 function hookKeyState () {
     keystate = {};
     document.addEventListener("keydown", function (evt) {
+        if (evt.keyCode === VKey && !ballChange) {
+            ballIteration++;
+            ballChange = true;
+        }
         keystate[evt.keyCode] = true;
     });
     document.addEventListener("keyup", function (evt) {
+        if (evt.keyCode === VKey && ballChange) {
+            ballChange = false;
+        }
         delete keystate[evt.keyCode];
     });
 }
@@ -174,7 +241,7 @@ function main() {
             width: Game.default.player.width,
             height: Game.default.player.height,
             x: width - (Game.playerOne.width + Game.default.player.width),
-            y: (height -  Game.playerOne.height) / 2
+            y: (height -  Game.playerOne.height) / 2,
         });
     } else {
         Game.playerTwo = new player({
@@ -209,6 +276,11 @@ function main() {
 
 function update() {
     Game.ball.update();
+
+    if(keystate[CKey]) {
+        Game.playerOne.color = "#f77979";
+        Game.playerTwo.color = "#7fb6ff";
+    }
     Game.playerOne.update();
     Game.playerTwo.update();    
 }
@@ -230,12 +302,12 @@ function draw() {
 
     ctx.save();
     ctx.fillStyle = "#fff";
+    drawNet();
 
     Game.ball.draw();
     Game.playerOne.draw();
     Game.playerTwo.draw();
 
-    drawNet();
 
     ctx.restore();
 }
