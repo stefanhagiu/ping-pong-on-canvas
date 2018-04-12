@@ -1,0 +1,22 @@
+Intro:
+- hello my name is X2
+- what is this talk about
+    - di ci canvasul e jmecker!
+- motivation of why do we talk about what we talk
+    - cuz shit is going to get real once Animation Workers hit the browser.
+    - CSS animation vs Canvas.
+    - and we don't care if you don't care!
+    - no matter the language or tool the first ting you have to build a game.
+- time to talk about Ping-pong
+    - the game demo (where need it explain concept)
+        - strip down game
+        - add pve
+        - add color
+        - add tween
+        - add trail
+        - add scale ball & paddle
+        - add shake 
+        - add particle
+        - add sound (cuz why not)
+        - add eye (for personality)
+- final comp (0 to 100);
