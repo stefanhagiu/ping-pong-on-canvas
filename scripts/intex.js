@@ -343,7 +343,7 @@ function main() {
     }
     if(Game.multipleBalls) {
         let interval = setInterval(function() {
-            if (Game.maxCountBall < Game.ballList) {
+            if (Game.maxCountBall < Game.ballList.length) {
                 clearInterval(interval);
             }
             let _ball = new ball({
