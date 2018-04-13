@@ -268,6 +268,7 @@ ball = function (option) {
                 }
             }
             if (colision) {
+                clearParticle();
                 createParticles();
             }
         },
