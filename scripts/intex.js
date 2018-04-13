@@ -34,6 +34,9 @@ Game = {
     ai: true,
     trail: true,
     particles: true,
+    multipleBalls: true,
+    ballList: [],
+    maxCountBall: 20,
 };
 
 player = function (option) {
@@ -152,6 +155,9 @@ ball = function (option) {
         ctx.fillStyle = "white";
         
     }
+    function clearParticle() {
+        particles = [];        
+    }
     return {
         x: option.x,
         y: option.y,
@@ -160,6 +166,7 @@ ball = function (option) {
         speed: option.speed || 10,
         gWidth: option.gWidth,
         gHeight: option.gHeight,
+        fake: option.fake,
         init: function (width, height) {
             this.x = (this.gWidth - this.side) / 2;
             this.y = (this.gHeight - this.side) / 2;
@@ -175,6 +182,7 @@ ball = function (option) {
             }
 
             clearTrail();
+            clearParticle();
         },
         AABBIntersect: function (ax, ay, aw, ah, bx, by, bw, bh) {
             return ax < bx + bw
@@ -243,7 +251,21 @@ ball = function (option) {
                 } else {
                     Game.score.right += 1;
                 }
-                this.init();
+                if (this.fake) {
+                    colision = true;                
+                    if (this.vel.x < 0) {
+                        particlesDirection.dx = 1;
+                    } else {
+                        particlesDirection.dx = -1;
+                    }
+
+                    colisionPos.x = this.x;
+                    colisionPos.y = this.y;
+
+                    this.vel.x *= -1;
+                } else {
+                    this.init();
+                }
             }
             if (colision) {
                 createParticles();
@@ -319,7 +341,25 @@ function main() {
             playerSpeed: Game.default.player.speed,
         });
     }
-
+    if(Game.multipleBalls) {
+        let interval = setInterval(function() {
+            if (Game.maxCountBall < Game.ballList) {
+                clearInterval(interval);
+            }
+            let _ball = new ball({
+                x: (width - Game.default.ball.width) / 2,
+                y: (height - Game.default.ball.height) / 2,
+                side: Game.default.ball.width,
+                speed: 10,
+                gWidth: width,
+                gHeight: height,
+                fake: true,
+            });
+    
+            _ball.init();
+            Game.ballList.push(_ball);
+        }, 1000);
+    } 
     Game.ball = new ball({
         x: (width - Game.default.ball.width) / 2,
         y: (height - Game.default.ball.height) / 2,
@@ -341,7 +381,10 @@ function main() {
 function update() {
     Game.ball.update();
     Game.playerOne.update();
-    Game.playerTwo.update();    
+    Game.playerTwo.update();
+    if (Game.multipleBalls) {
+        Game.ballList.forEach(_ball => _ball.update())
+    }  
 }
 
 function drawNet() {
@@ -371,6 +414,10 @@ function draw() {
     Game.ball.draw();
     Game.playerOne.draw();
     Game.playerTwo.draw();
+
+    if (Game.multipleBalls) {
+        Game.ballList.forEach(_ball => _ball.draw())
+    }  
 
     drawNet();
     drawScore();
