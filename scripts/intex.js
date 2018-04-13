@@ -214,7 +214,15 @@ ball = function (option) {
         update: function () {
             let colision = false;
             let side = this.vel.x < 0 ? -1 : 1;
-            
+            if(keystate[BKey] && activeBounce) {
+                this.bounceSound = this.bounceSound ? false : true;
+            }
+            if(keystate[NKey] && activePaddle) {
+                this.paddleSound = this.paddleSound ? false : true;
+            }
+            if(keystate[MKey] && activeWin) {
+                this.winSound = this.winSound ? false : true;
+            }
             switch (ballIteration) {
                 case 0:
                     this.color = "#fff";
@@ -323,6 +331,9 @@ ball = function (option) {
                     colisionPos.x = this.x;
                     colisionPos.y = this.y;
                     this.vel.x *= -1;
+                    if (this.bounceSound) {
+                        Game.bounceSound.get();
+                    }
                 } else {
                     this.init();
                 }
@@ -478,7 +489,7 @@ function main() {
     if(Game.multipleBalls) {
         let interval = setInterval(function() {
             if (Game.maxCountBall < Game.ballList.length) {
-                clearInterval(interval);
+                //clearInterval(interval);
             }
             let _ball = new ball({
                 x: (width - Game.default.ball.width) / 2,
@@ -528,18 +539,7 @@ function update() {
         Game.playerOne.color = "#f77979";
         Game.playerTwo.color = "#7fb6ff";
     }
-    if(keystate[BKey] && activeBounce) {
-        Game.ball.bounceSound = Game.ball.bounceSound ? false : true;
-        activeBounce = false;
-    }
-    if(keystate[NKey] && activePaddle) {
-        Game.ball.paddleSound = Game.ball.paddleSound ? false : true;
-        activePaddle = false;
-    }
-    if(keystate[MKey] && activeWin) {
-        Game.ball.winSound = Game.ball.winSound ? false : true;
-        activeWin = false;
-    }
+    
     if(keystate[KKey] && activeBackground) {
         console.log(Game.backgroundAudio.volume);
         Game.backgroundAudio.volume = Game.backgroundAudio.volume === 0 ? .1 : 0;
