@@ -15,18 +15,25 @@ Game = {
     playerOne: null,
     playerTwo: null,
     ball: null,
+    score: {
+        left: 0,
+        right: 0,
+    },
     default: {
         player: {
             width: 20,
             height: 100,
-            speed: 7,
+            speed: 10,
         },
         ball: {
             width: 20,
             height: 20,
         }
     },
+    onlyAi: true,
     ai: true,
+    trail: true,
+    particles: true,
 };
 
 player = function (option) {
@@ -70,6 +77,81 @@ ai = function (option) { return {
 }
 
 ball = function (option) {
+    const motionTrailLength = 25;
+    const particlesCount = 20;
+    let position = [];
+    let particles = [];
+    let particlesDirection = {
+        dx: 1,
+        dy: 1,
+    };
+    let colisionPos = {
+        x: 0,
+        y: 0,
+    };
+
+    function removeHead() {
+        if (position.length > motionTrailLength) {
+            position.shift();
+        }
+    }
+
+    function storePosition(x,y, side) {
+        position.push({x:x, y:y, side: side});
+        removeHead();
+    }
+
+    function clearTrail() {
+        position = [];
+    }
+
+    function drawTrail() {
+        for(let i = 0; i < position.length; i++) {
+            let ration = (i + 1) / position.length;
+            ctx.fillStyle = "rgba(255, 255, 255, " + ration / 2 + ")";            
+            ctx.fillRect(position[i].x, position[i].y, position[i].side, position[i].side);
+        }
+        ctx.fillStyle = "#fff";   
+    }
+    
+    function createParticles() {
+        for(let i = 0; i < particlesCount; i++) {
+            particles.push(new createParticle(colisionPos.x, colisionPos.y, 
+                particlesDirection.dx, particlesDirection.dy));
+        }
+    }
+
+    function createParticle(x, y, dx, dy) {
+        this.x = x || 0;
+        this.y = y || 0;
+
+        this.radius = 3;
+        this.vx = dx * Math.random() * 1.5;
+        this.vy = dy * Math.random() * 1.5;
+    }
+    
+    function drawParticles() {
+        for(var j = 0; j < particles.length; j++) {
+            par = particles[j];
+            
+            ctx.beginPath(); 
+            ctx.fillStyle = 'rgb(' + Math.floor(255 - Math.random() * j) + ',' +
+            Math.floor(255 - Math.random() * j) + ','+ Math.floor(255 - Math.random() * j) +')';
+
+            if (par.radius > 0) {
+                ctx.arc(par.x, par.y, par.radius, 0, pi*2, false);
+            }
+            ctx.fill();	 
+            
+            par.x += par.vx; 
+            par.y += par.vy; 
+            
+            // Reduce radius so that the particles die after a few seconds
+            par.radius = Math.max(par.radius - 0.05, 0.0);
+        }
+        ctx.fillStyle = "white";
+        
+    }
     return {
         x: option.x,
         y: option.y,
@@ -91,6 +173,8 @@ ball = function (option) {
                 x:  side * this.speed * Math.cos(phi),
                 y: this.speed * Math.sin(phi)
             }
+
+            clearTrail();
         },
         AABBIntersect: function (ax, ay, aw, ah, bx, by, bw, bh) {
             return ax < bx + bw
@@ -99,10 +183,24 @@ ball = function (option) {
                 && by < ay + ah;
         },
         update: function () {
+            let colision = false;
+
             this.x += this.vel.x;
             this.y += this.vel.y;
+            
+            storePosition(this.x, this.y, this.side);
 
             if (0 > this.y || this.y + this.side > height) {
+                colision = true;
+                if ( 0 > this.y) {
+                    particlesDirection.dy = 1;
+                } else {
+                   
+                    particlesDirection.dy = -1;
+                }
+
+                colisionPos.y = this.y;
+                colisionPos.x = this.x;
                 let offset = this.vel.y < 0 ? 
                     0 - this.y : 
                     height - (this.y + this.side);
@@ -122,20 +220,43 @@ ball = function (option) {
                 let n = (this.y + this.side - pdle.y) / (pdle.height + this.side);
                 let phi = 0.25 * pi * (2 * n - 1); // pi/ 4 = 45
 
+                // particle
+                colision = true;                
+                if (this.vel.x < 0) {
+                    particlesDirection.dx = 1;
+                } else {
+                    particlesDirection.dx = -1;
+                }
+
+                colisionPos.x = this.x;
+                colisionPos.y = this.y;
                 // smashing system ?
                 let smash = Math.abs(phi) > 0.2 * pi ? 1.5 : 1;
 
                 this.vel.x = smash * (pdle === Game.playerOne ? 1 : -1 ) * this.speed * Math.cos(phi);
-                this.vel.y = smash * this.speed * Math.sin(phi);                    
+                this.vel.y = smash * this.speed * Math.sin(phi);
             }
 
             if (0 > this.x + this.side || this.x > width) {
+                if (0 > this.x + this.side) {
+                    Game.score.left += 1;
+                } else {
+                    Game.score.right += 1;
+                }
                 this.init();
             }
-
+            if (colision) {
+                createParticles();
+            }
         },
         draw: function () {
             ctx.fillRect(this.x, this.y, this.side, this.side);
+            if (Game.trail) {
+                drawTrail();
+            }
+            if (Game.particles) {
+                drawParticles();
+            }
         },    
     };
 };
@@ -158,18 +279,29 @@ function main() {
     ctx = canvas.getContext('2d');
     
     hookKeyState();
-    
-    Game.playerOne = new player({
-        width: Game.default.player.width,
-        height: Game.default.player.height,
-        x: Game.default.player.width,
-        y:(height - Game.default.player.height) / 2,
-        upArrow: UpArrow,
-        downArrow: DownArrow,
-        playerSpeed: Game.default.player.speed,
-    });
+    if (Game.onlyAi) {
+        Game.playerOne = new ai({
+            width: Game.default.player.width,
+            height: Game.default.player.height,
+            x: Game.default.player.width,
+            y:(height - Game.default.player.height) / 2,
+            upArrow: UpArrow,
+            downArrow: DownArrow,
+            playerSpeed: Game.default.player.speed,
+        });
+    } else {
+        Game.playerOne = new player({
+            width: Game.default.player.width,
+            height: Game.default.player.height,
+            x: Game.default.player.width,
+            y:(height - Game.default.player.height) / 2,
+            upArrow: UpArrow,
+            downArrow: DownArrow,
+            playerSpeed: Game.default.player.speed,
+        });
+    }
 
-    if (Game.ai) {
+    if (Game.onlyAi || Game.ai) {
         Game.playerTwo = new ai({
             width: Game.default.player.width,
             height: Game.default.player.height,
@@ -206,7 +338,6 @@ function main() {
     })();
 }
 
-
 function update() {
     Game.ball.update();
     Game.playerOne.update();
@@ -225,6 +356,12 @@ function drawNet() {
     }
 }
 
+function drawScore() {
+    ctx.font="30px Arial";
+    ctx.fillText(Game.score.right, width/4, 40);
+    ctx.fillText(Game.score.left,width*3/4,40);
+}
+
 function draw() {
     ctx.fillRect(0, 0, width, height);
 
@@ -236,6 +373,7 @@ function draw() {
     Game.playerTwo.draw();
 
     drawNet();
+    drawScore();
 
     ctx.restore();
 }
