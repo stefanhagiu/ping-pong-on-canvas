@@ -49,9 +49,48 @@ Game = {
     maxCountBall: 20,
     particlesCount: 25,
     motionTrailLength: 25,
+    eyes: true,
 };
 
 player = function (option) {
+    function drawEyes(x, y, elemHeight) {
+        const blink = Math.random();
+        const irisR = 5;
+        const eyeR = 10;
+
+        let irisOffset = 0;        
+        let fillColor = "#000";
+        if (blink > 0.96) {
+            fillColor = "#fff";
+        }
+        // calc pos of ball vs current pos;
+        let diff = y - Game.ball.y + (elemHeight / 2);
+
+        irisOffset = diff < 0 ? 1 : - 1;
+        irisOffset = irisOffset * (Math.abs(diff)/100) * (eyeR - irisR) / 2;
+
+        console.log(irisOffset);
+        
+        drawCircle(x + 10, y + 30 + irisOffset, irisR, true, fillColor);
+        drawCircle(x + 10, y + 30, eyeR, false);
+
+        drawCircle(x + 10, y + 70 + irisOffset, irisR, true, fillColor);
+        drawCircle(x + 10, y + 70, eyeR , false);
+    }
+    function drawCircle(x, y, width, fill, fillColor) {
+
+        ctx.beginPath();
+        ctx.arc(x, y, width, 0, 2*pi);
+
+        if (fill) {
+            ctx.fillStyle = fillColor;  
+            ctx.fill();
+            // reset fill style 
+            ctx.fillStyle = "#fff";
+        } else {
+            ctx.stroke();
+        }
+    }
     return {
         x: option.x,
         y: option.y,
@@ -74,16 +113,59 @@ player = function (option) {
             ctx.beginPath();
             ctx.fillStyle = this.color;
             ctx.fillRect(this.x, this.y, this.width, this.height);
+            if (Game.eyes) {
+                drawEyes(this.x, this.y, this.height);
+            }
         }, 
     };   
 };
 
-ai = function (option) { return {
+ai = function (option) {
+    function drawEyes(x, y, elemHeight) {
+        const blink = Math.random();
+        const irisR = 5;
+        const eyeR = 10;
+
+        let irisOffset = 0;        
+        let fillColor = "#000";
+        if (blink > 0.96) {
+            fillColor = "#fff";
+        }
+        // calc pos of ball vs current pos;
+        let diff = y - Game.ball.y + (elemHeight / 2);
+
+        irisOffset = diff < 0 ? 1 : - 1;
+        irisOffset = irisOffset * (Math.abs(diff)/100) * (eyeR - irisR) / 2;
+
+        console.log(irisOffset);
+
+        drawCircle(x + 10, y + 30 + irisOffset, irisR, true, fillColor);
+        drawCircle(x + 10, y + 30, eyeR, false);
+
+        drawCircle(x + 10, y + 70 + irisOffset, irisR, true, fillColor);
+        drawCircle(x + 10, y + 70, eyeR , false);
+    }
+    function drawCircle(x, y, width, fill, fillColor) {
+
+        ctx.beginPath();
+        ctx.arc(x, y, width, 0, 2*pi);
+
+        if (fill) {
+            ctx.fillStyle = fillColor;  
+            ctx.fill();
+            // reset fill style 
+            ctx.fillStyle = "#fff";
+        } else {
+            ctx.stroke();
+        }
+    }
+    return {
         x: option.x,
         y: option.y,
         width: option.width || 20,
         height: option.height || 100,
         color: option.color || "#fff",
+        id: option.id,
         update: function () {
             let destination = Game.ball.y - (this.height -  Game.ball.side) / 2;
             this.y += (destination - this.y) * 0.1;
@@ -92,6 +174,9 @@ ai = function (option) { return {
         draw: function () {
             ctx.fillStyle = this.color;
             ctx.fillRect(this.x, this.y, this.width, this.height);
+            if (Game.eyes) {
+                drawEyes(this.x, this.y, this.height);
+            }
         },    
     };
 }
