@@ -39,13 +39,16 @@ Game = {
             height: 20,
         }
     },
-    onlyAi: true,
-    ai: true,
-    trail: true,
-    particles: true,
-    multipleBalls: true,
+    onlyAi: false,
+    ai: false,
+    trail: false,
+    particles: false,
+    multipleBalls: false,
+    removeFake: false,    
     ballList: [],
     maxCountBall: 20,
+    particlesCount: 25,
+    motionTrailLength: 25,
 };
 
 player = function (option) {
@@ -94,8 +97,6 @@ ai = function (option) { return {
 }
 
 ball = function (option) {
-    const motionTrailLength = 25;
-    const particlesCount = 20;
     let position = [];
     let particles = [];
     let particlesDirection = {
@@ -108,7 +109,7 @@ ball = function (option) {
     };
 
     function removeHead() {
-        if (position.length > motionTrailLength) {
+        while (position.length > Game.motionTrailLength) {
             position.shift();
         }
     }
@@ -132,7 +133,7 @@ ball = function (option) {
     }
     
     function createParticles() {
-        for(let i = 0; i < particlesCount; i++) {
+        for(let i = 0; i < Game.particlesCount; i++) {
             particles.push(new createParticle(colisionPos.x, colisionPos.y, 
                 particlesDirection.dx, particlesDirection.dy));
         }
@@ -152,8 +153,8 @@ ball = function (option) {
             par = particles[j];
             
             ctx.beginPath(); 
-            ctx.fillStyle = 'rgb(' + Math.floor(255 - Math.random() * j) + ',' +
-            Math.floor(255 - Math.random() * j) + ','+ Math.floor(255 - Math.random() * j) +')';
+            ctx.fillStyle = 'rgb(' + Math.floor(200 - Math.random() * j) + ',' +
+            Math.floor(200 - Math.random() * j) + ','+ Math.floor(200 - Math.random() * j) +')';
 
             if (par.radius > 0) {
                 ctx.arc(par.x, par.y, par.radius, 0, pi*2, false);
@@ -412,9 +413,13 @@ soundPool = function(maxSize) {
 function hookKeyState () {
     keystate = {};
     document.addEventListener("keydown", function (evt) {
+        console.log(evt.keyCode);
         if (evt.keyCode === VKey && !ballChange) {
             ballIteration++;
             ballChange = true;
+            if (ballIteration > 4) {
+                ballIteration = 0;
+            }            
         }
         if (evt.keyCode === BKey && !activeBounce) {
             activeBounce = true;
@@ -428,6 +433,70 @@ function hookKeyState () {
         if (evt.keyCode === KKey && !activeBackground) {
             activeBackground = true;
         }
+        if (evt.keyCode === 49) {
+            Game.trail = !Game.trail;
+        }
+        if (evt.keyCode === 50) {
+            Game.particles = !Game.particles;
+        }
+        if (evt.keyCode === 80) { // p
+            Game.particlesCount += 50;
+            console.log(`${Game.particlesCount}: Game.particlesCount`);
+        }
+        if (evt.keyCode === 79) { // o
+            Game.particlesCount -= 50
+            if (Game.particlesCount < 25) {
+                Game.particlesCount = 25;
+            }
+            console.log(`${Game.particlesCount}: Game.particlesCount`);            
+        }
+        if (evt.keyCode === 84) { // t
+            Game.motionTrailLength += 50;
+            console.log(`${Game.motionTrailLength}: Game.motionTrailLength`);
+        }
+        if (evt.keyCode === 82) { // r
+            Game.motionTrailLength -= 50;
+            if (Game.motionTrailLength < 25) {
+                Game.motionTrailLength = 25;
+            }
+            console.log(`${Game.motionTrailLength}: Game.motionTrailLength`);
+        }
+        if (evt.keyCode === 48 || evt.keyCode === 57){
+            if (evt.keyCode === 48) {
+                Game.removeFake = true;
+                Game.multipleBalls = false;
+            }
+            if (evt.keyCode === 57) {
+                Game.removeFake = false;
+                Game.multipleBalls = true;
+            }
+            maddness();
+        }
+        if (evt.keyCode === 51) {// add Ai
+            Game.ai = !Game.ai;
+            if (Game.ai) {
+                Game.playerTwo = Game.ai2;
+            } else {
+                Game.playerTwo = Game.p2;
+            }
+        }
+
+        if (evt.keyCode === 52) {// add Ai
+            Game.onlyAi = !Game.onlyAi;
+            if (Game.onlyAi) {
+                Game.playerOne = Game.ai1;
+                Game.playerTwo = Game.ai2;
+            } else {
+                if (!Game.ai) {
+                    Game.playerTwo = Game.p2;
+                }
+                Game.playerOne = Game.p1;                
+            }
+        }
+
+        if (evt.keyCode === 189) { //- to pause maddness
+            Game.multipleBalls = !Game.multipleBalls;
+        }  
         keystate[evt.keyCode] = true;
     });
     document.addEventListener("keyup", function (evt) {
@@ -437,7 +506,37 @@ function hookKeyState () {
         delete keystate[evt.keyCode];
     });
 }
+function maddness() {
+    let r = 1000;
+    function ThrowBall(timmer) {
+        if (Game.removeFake) {
+            Game.ballList = [];
+            return;
+        }
+        setTimeout(() => {
+                let _ball = new ball({
+                    x: (width - Game.default.ball.width) / 2,
+                    y: (height - Game.default.ball.height) / 2,
+                    side: Game.default.ball.width,
+                    speed: 10,
+                    gWidth: width,
+                    gHeight: height,
+                    fake: true,
+                });
+                _ball.init();
+                Game.ballList.push(_ball);
 
+                if (Game.multipleBalls) {
+                    r -= 50;
+                    if (r < 0) {
+                        r = 0;
+                    }
+                    ThrowBall(r);
+                }
+            }, timmer);
+        }
+    ThrowBall(r);
+}
 function main() {
     canvas = document.getElementById('canvas');
     canvas.width = width;
@@ -446,65 +545,43 @@ function main() {
     ctx = canvas.getContext('2d');
     
     hookKeyState();
-    if (Game.onlyAi) {
-        Game.playerOne = new ai({
-            width: Game.default.player.width,
-            height: Game.default.player.height,
-            x: Game.default.player.width,
-            y:(height - Game.default.player.height) / 2,
-            upArrow: UpArrow,
-            downArrow: DownArrow,
-            playerSpeed: Game.default.player.speed,
-        });
-    } else {
-        Game.playerOne = new player({
-            width: Game.default.player.width,
-            height: Game.default.player.height,
-            x: Game.default.player.width,
-            y:(height - Game.default.player.height) / 2,
-            upArrow: UpArrow,
-            downArrow: DownArrow,
-            playerSpeed: Game.default.player.speed,
-        });
-    }
-
-    if (Game.onlyAi || Game.ai) {
-        Game.playerTwo = new ai({
-            width: Game.default.player.width,
-            height: Game.default.player.height,
-            x: width - (Game.playerOne.width + Game.default.player.width),
-            y: (height -  Game.playerOne.height) / 2,
-        });
-    } else {
-        Game.playerTwo = new player({
-            width: Game.default.player.width,
-            height: Game.default.player.height,
-            x: width - (Game.playerOne.width + Game.default.player.width),
-            y: (height -  Game.playerOne.height) / 2,
-            upArrow: WArrow,
-            downArrow: SArrow,
-            playerSpeed: Game.default.player.speed,
-        });
-    }
-    if(Game.multipleBalls) {
-        let interval = setInterval(function() {
-            if (Game.maxCountBall < Game.ballList.length) {
-                //clearInterval(interval);
-            }
-            let _ball = new ball({
-                x: (width - Game.default.ball.width) / 2,
-                y: (height - Game.default.ball.height) / 2,
-                side: Game.default.ball.width,
-                speed: 10,
-                gWidth: width,
-                gHeight: height,
-                fake: true,
-            });
+    Game.p1 = new player({
+        width: Game.default.player.width,
+        height: Game.default.player.height,
+        x: Game.default.player.width,
+        y:(height - Game.default.player.height) / 2,
+        upArrow: UpArrow,
+        downArrow: DownArrow,
+        playerSpeed: Game.default.player.speed,
+    });
+    Game.playerOne = Game.p1;
     
-            _ball.init();
-            Game.ballList.push(_ball);
-        }, 1000);
-    } 
+    Game.p2 = new player({
+        width: Game.default.player.width,
+        height: Game.default.player.height,
+        x: width - (Game.playerOne.width + Game.default.player.width),
+        y: (height -  Game.playerOne.height) / 2,
+        upArrow: WArrow,
+        downArrow: SArrow,
+        playerSpeed: Game.default.player.speed,
+    });
+    Game.playerTwo = Game.p2;
+
+    Game.ai1 = new ai({
+        width: Game.default.player.width,
+        height: Game.default.player.height,
+        x: Game.default.player.width,
+        y:(height - Game.default.player.height) / 2,
+        upArrow: UpArrow,
+        downArrow: DownArrow,
+        playerSpeed: Game.default.player.speed,
+    });
+    Game.ai2 = new ai({
+        width: Game.default.player.width,
+        height: Game.default.player.height,
+        x: width - (Game.playerOne.width + Game.default.player.width),
+        y: (height -  Game.playerOne.height) / 2,
+    });
     Game.ball = new ball({
         x: (width - Game.default.ball.width) / 2,
         y: (height - Game.default.ball.height) / 2,
