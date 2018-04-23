@@ -15,7 +15,7 @@ const UpArrow = 38,
     KKey = 75;
 
 let canvas, ctx, keystate,
-    player, ai, ball, ballChange,
+    player, ai, ball, ballChange, isShaking, isScaling,
     activeBounce, activePaddle, activeWin, activeBackground;
 
 let ballIteration = 0;
@@ -50,6 +50,9 @@ Game = {
     particlesCount: 25,
     motionTrailLength: 25,
     eyes: true,
+    shake: false,
+    chaoticShake: false,
+    ballScale: false,
 };
 
 player = function (option) {
@@ -69,7 +72,7 @@ player = function (option) {
         irisOffset = diff < 0 ? 1 : - 1;
         irisOffset = irisOffset * (Math.abs(diff)/100) * (eyeR - irisR) / 2;
 
-        console.log(irisOffset);
+        // console.log(irisOffset);
         
         drawCircle(x + 10, y + 30 + irisOffset, irisR, true, fillColor);
         drawCircle(x + 10, y + 30, eyeR, false);
@@ -137,7 +140,7 @@ ai = function (option) {
         irisOffset = diff < 0 ? 1 : - 1;
         irisOffset = irisOffset * (Math.abs(diff)/100) * (eyeR - irisR) / 2;
 
-        console.log(irisOffset);
+        // console.log(irisOffset);
 
         drawCircle(x + 10, y + 30 + irisOffset, irisR, true, fillColor);
         drawCircle(x + 10, y + 30, eyeR, false);
@@ -257,6 +260,30 @@ ball = function (option) {
     }
     function clearParticle() {
         particles = [];        
+    }
+    function shakeScreen() {
+        if (Game.shake) {
+            isShaking = true;
+            setTimeout(() => {
+                isShaking = false;
+            }, 200);
+        }
+    }
+    function buggyShakeScreen() {
+        if (Game.chaoticShake) {
+            preShake();
+            setTimeout(() => {
+                postShake();
+            }, 200);
+        }
+    }
+    function scaleBall() {
+        if (Game.ballScale) {
+            isScaling = true;
+            setTimeout(() => {
+                isScaling = false;
+            }, 200);
+        }
     }
     return {
         x: option.x,
@@ -425,19 +452,27 @@ ball = function (option) {
                 }
             }
             if (colision) {
+                shakeScreen();
+                buggyShakeScreen();
+                scaleBall();
                 clearParticle();
                 createParticles();
             }
         },
         draw: function () {
-            ctx.fillStyle = this.color;
-            ctx.fillRect(this.x, this.y, this.side, this.side);
             if (Game.trail) {
                 drawTrail();
             }
             if (Game.particles) {
                 drawParticles();
             }
+            if (isScaling) {
+                this.side = this.side === 30 ? this.side : this.side + 2;
+            } else {
+                this.side = this.side === 20 ? this.side : this.side - 2;
+            }
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.side, this.side);
             if (ballIteration === 2) {
                 ctx.beginPath();
                 ctx.ellipse(this.x + 1, (this.y + (this.side / 2)), (this.side / 2 - 6), (this.side / 2), 0, (1.5 * pi), (0.5 * pi));
@@ -451,6 +486,8 @@ ball = function (option) {
                 ctx.strokeStyle = "red";
                 ctx.stroke();
                 ctx.closePath();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = "black";
             }
         },    
     };
@@ -498,7 +535,7 @@ soundPool = function(maxSize) {
 function hookKeyState () {
     keystate = {};
     document.addEventListener("keydown", function (evt) {
-        console.log(evt.keyCode);
+        // console.log(evt.keyCode);
         if (evt.keyCode === VKey && !ballChange) {
             ballIteration++;
             ballChange = true;
@@ -526,25 +563,25 @@ function hookKeyState () {
         }
         if (evt.keyCode === 80) { // p
             Game.particlesCount += 50;
-            console.log(`${Game.particlesCount}: Game.particlesCount`);
+            // console.log(`${Game.particlesCount}: Game.particlesCount`);
         }
         if (evt.keyCode === 79) { // o
             Game.particlesCount -= 50
             if (Game.particlesCount < 25) {
                 Game.particlesCount = 25;
             }
-            console.log(`${Game.particlesCount}: Game.particlesCount`);            
+            // console.log(`${Game.particlesCount}: Game.particlesCount`);            
         }
         if (evt.keyCode === 84) { // t
             Game.motionTrailLength += 50;
-            console.log(`${Game.motionTrailLength}: Game.motionTrailLength`);
+            // console.log(`${Game.motionTrailLength}: Game.motionTrailLength`);
         }
         if (evt.keyCode === 82) { // r
             Game.motionTrailLength -= 50;
             if (Game.motionTrailLength < 25) {
                 Game.motionTrailLength = 25;
             }
-            console.log(`${Game.motionTrailLength}: Game.motionTrailLength`);
+            // console.log(`${Game.motionTrailLength}: Game.motionTrailLength`);
         }
         if (evt.keyCode === 48 || evt.keyCode === 57){
             if (evt.keyCode === 48) {
@@ -556,6 +593,9 @@ function hookKeyState () {
                 Game.multipleBalls = true;
             }
             maddness();
+        }
+        if (evt.keyCode === 187) { // + key -> makes screen go away when 9 key is active
+            Game.chaoticShake = !Game.chaoticShake;
         }
         if (evt.keyCode === 51) {// add Ai
             Game.ai = !Game.ai;
@@ -581,7 +621,14 @@ function hookKeyState () {
 
         if (evt.keyCode === 189) { //- to pause maddness
             Game.multipleBalls = !Game.multipleBalls;
-        }  
+        }
+
+        if (evt.keyCode === 88) { // x - shake
+            Game.shake = !Game.shake;
+        }
+        if (evt.keyCode === 90) { // x - shake
+            Game.ballScale = !Game.ballScale;
+        }
         keystate[evt.keyCode] = true;
     });
     document.addEventListener("keyup", function (evt) {
@@ -591,7 +638,7 @@ function hookKeyState () {
         delete keystate[evt.keyCode];
     });
 }
-function maddness() {
+function maddness(shake) {
     let r = 1000;
     function ThrowBall(timmer) {
         if (Game.removeFake) {
@@ -622,6 +669,18 @@ function maddness() {
         }
     ThrowBall(r);
 }
+
+function preShake() {
+    ctx.save();
+    var dx = Math.random() * 10;
+    var dy = Math.random() * 10;
+    ctx.translate(dx, dy);
+}
+
+function postShake() {
+    ctx.restore();
+}
+
 function main() {
     canvas = document.getElementById('canvas');
     canvas.width = width;
@@ -703,7 +762,7 @@ function update() {
     }
     
     if(keystate[KKey] && activeBackground) {
-        console.log(Game.backgroundAudio.volume);
+        // console.log(Game.backgroundAudio.volume);
         Game.backgroundAudio.volume = Game.backgroundAudio.volume === 0 ? .1 : 0;
         activeBackground = false;
     }
@@ -737,6 +796,10 @@ function draw() {
     ctx.fillRect(0, 0, width, height);
 
     ctx.save();
+    if (isShaking) {
+        preShake();
+    }
+
     ctx.fillStyle = "#fff";
     drawNet();
 
@@ -750,6 +813,10 @@ function draw() {
 
     drawNet();
     drawScore();
+
+    if (isShaking) {
+        postShake();
+    }
 
     ctx.restore();
 }
