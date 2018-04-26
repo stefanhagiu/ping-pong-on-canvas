@@ -15,4 +15,24 @@ canvas {
   right: 0;
   border: 5px solid white;
 }
-  
+
+#game, #game-loop {
+  display: none;
+}
+
+#simple img {
+  position: absolute;
+  top: 38%;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  width: 56vw;
+}
+
+#game-loop img {
+  width: 43vw;
+}
+#game-loop canvas,
+#simple canvas{
+  left: 40%;
+}

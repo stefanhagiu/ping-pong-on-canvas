@@ -5,7 +5,20 @@
         <link rel="stylesheet" type="text/css" href="./css/main.css">
     </head>
     <body>
-        <canvas id="canvas"></canvas>
-        <script type="text/javascript" src="./scripts/intex.js"></script>
+        <div id="simple">
+            <canvas id="canvas-simple" width="400" height="400"></canvas>
+            <img src="./img/simple.png">
+        </div>
+        <div id="game-loop">
+           <canvas id="canvas-gameloop" width="400" height="400"></canvas>
+           <img src="./img/game-loop.png">
+        </div>
+        <div id="game">
+            <canvas id="canvas"></canvas>
+        </div>
+        <script src="./scripts/slide.js"></script>        
+        <script type="text/javascript" src="./scripts/simple.js"></script>
+        <script type="text/javascript" src="./scripts/canvas-gameloop.js"></script>
+        <script type="text/javascript" src="./scripts/intex.js"></script>                
     </body>
 </html>
