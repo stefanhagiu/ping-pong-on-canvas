@@ -49,10 +49,14 @@ Game = {
     maxCountBall: 20,
     particlesCount: 25,
     motionTrailLength: 25,
-    eyes: true,
+    eyes: false,
     shake: false,
     chaoticShake: false,
     ballScale: false,
+    activeBackground: false,
+    activeBounce: false,
+    activePaddle: false,
+    activeWin: false
 };
 
 player = function (option) {
@@ -295,9 +299,6 @@ ball = function (option) {
         gWidth: option.gWidth,
         gHeight: option.gHeight,
         fake: option.fake,
-        bounceSound: false,
-        paddleSound: false,
-        winSound: false,
         phi: 0,
         init: function (width, height) {
             this.x = (this.gWidth - this.side) / 2;
@@ -327,15 +328,6 @@ ball = function (option) {
         update: function () {
             let colision = false;
             let side = this.vel.x < 0 ? -1 : 1;
-            if(keystate[BKey] && activeBounce) {
-                this.bounceSound = this.bounceSound ? false : true;
-            }
-            if(keystate[NKey] && activePaddle) {
-                this.paddleSound = this.paddleSound ? false : true;
-            }
-            if(keystate[MKey] && activeWin) {
-                this.winSound = this.winSound ? false : true;
-            }
             switch (ballIteration) {
                 case 0:
                     this.color = "#fff";
@@ -351,7 +343,7 @@ ball = function (option) {
                     this.vel.x = side * this.speed * Math.cos(this.phi);
                     break;
                 case 3:
-                    this.color = "#303030";
+                    this.color = "#505050";
                     this.speed = 0.1;
                     // this.vel.x = side * this.speed * Math.cos(this.phi);
                     break;
@@ -386,7 +378,7 @@ ball = function (option) {
 
                 this.y += 2 * offset;
                 this.vel.y *= -1;
-                if (this.bounceSound) {
+                if (Game.activeBounce) {
                     Game.bounceSound.get();
                 }
             }
@@ -397,7 +389,7 @@ ball = function (option) {
             if (this.AABBIntersect(pdle.x, pdle.y, pdle.width, pdle.height,
                     this.x, this.y, this.side, this.side)) {
                 
-                if (this.paddleSound) {
+                if (Game.activePaddle) {
                     Game.paddleSound.get();
                 }
                 // in case we hit with the "sides" of the paddles the
@@ -426,7 +418,7 @@ ball = function (option) {
             }
 
             if (0 > this.x + this.side || this.x > width) {
-                if (this.winSound) {
+                if (Game.activeWin) {
                     Game.winSound.get();
                 }
                 if (0 > this.x + this.side) {
@@ -444,7 +436,7 @@ ball = function (option) {
                     colisionPos.x = this.x;
                     colisionPos.y = this.y;
                     this.vel.x *= -1;
-                    if (this.bounceSound) {
+                    if (Game.activeBounce) {
                         Game.bounceSound.get();
                     }
                 } else {
@@ -489,6 +481,21 @@ ball = function (option) {
                 ctx.lineWidth = 1;
                 ctx.strokeStyle = "black";
             }
+            if (ballIteration === 3) {
+                ctx.fillStyle = "white"
+                ctx.beginPath();
+                ctx.arc(this.x + (this.side / 2) - 5, this.y + (this.side / 2) - 5, 2, 0, 2 * pi);
+                ctx.fill();
+                ctx.closePath();
+                ctx.beginPath();
+                ctx.arc(this.x + (this.side / 2) + 1, this.y + (this.side / 2) - 5, 2, 0, 2 * pi);
+                ctx.fill();
+                ctx.closePath();
+                ctx.beginPath();
+                ctx.arc(this.x + (this.side / 2) - 2, this.y + (this.side / 2), 2, 0, 2 * pi);
+                ctx.fill();
+                ctx.closePath();
+            }
         },    
     };
 };
@@ -509,7 +516,7 @@ soundPool = function(maxSize) {
                 }
             } else if (object == "win") {
                 for (var i = 0; i < this.size; i++) {
-                    var win = new Audio("sounds/win.wav");
+                    var win = new Audio("sounds/win.mp3");
                     win.volume = .3;
                     win.load();
                     this.pool[i] = win;
@@ -543,17 +550,17 @@ function hookKeyState () {
                 ballIteration = 0;
             }            
         }
-        if (evt.keyCode === BKey && !activeBounce) {
-            activeBounce = true;
+        if (evt.keyCode === BKey) {
+            Game.activeBounce = !Game.activeBounce;
         }
-        if (evt.keyCode === NKey && !activePaddle) {
-            activePaddle = true;
+        if (evt.keyCode === NKey) {
+            Game.activePaddle = !Game.activePaddle;
         }
-        if (evt.keyCode === MKey && !activeWin) {
-            activeWin = true;
+        if (evt.keyCode === MKey) {
+            Game.activeWin = !Game.activeWin;
         }
-        if (evt.keyCode === KKey && !activeBackground) {
-            activeBackground = true;
+        if (evt.keyCode === KKey) {
+            Game.activeBackground = !Game.activeBackground;
         }
         if (evt.keyCode === 49) {
             Game.trail = !Game.trail;
@@ -629,6 +636,9 @@ function hookKeyState () {
         if (evt.keyCode === 90) { // x - shake
             Game.ballScale = !Game.ballScale;
         }
+        if (evt.keyCode === 69) {
+            Game.eyes = !Game.eyes;
+        }
         keystate[evt.keyCode] = true;
     });
     document.addEventListener("keyup", function (evt) {
@@ -694,8 +704,8 @@ function main() {
         height: Game.default.player.height,
         x: Game.default.player.width,
         y:(height - Game.default.player.height) / 2,
-        upArrow: UpArrow,
-        downArrow: DownArrow,
+        upArrow: WArrow,
+        downArrow: SArrow,
         playerSpeed: Game.default.player.speed,
     });
     Game.playerOne = Game.p1;
@@ -705,8 +715,8 @@ function main() {
         height: Game.default.player.height,
         x: width - (Game.playerOne.width + Game.default.player.width),
         y: (height -  Game.playerOne.height) / 2,
-        upArrow: WArrow,
-        downArrow: SArrow,
+        upArrow: UpArrow,
+        downArrow: DownArrow,
         playerSpeed: Game.default.player.speed,
     });
     Game.playerTwo = Game.p2;
@@ -742,9 +752,9 @@ function main() {
     Game.winSound.init("win");
     Game.paddleSound = new soundPool(10);
     Game.paddleSound.init("paddle");
-    Game.backgroundAudio = new Audio("sounds/epic.wav");
+    Game.backgroundAudio = new Audio("sounds/mario.mp3");
     Game.backgroundAudio.loop = true;
-    Game.backgroundAudio.volume = 0;
+    Game.backgroundAudio.volume = .3;
     Game.backgroundAudio.load();
 
     (function loop() {
@@ -761,10 +771,10 @@ function update() {
         Game.playerTwo.color = "#7fb6ff";
     }
     
-    if(keystate[KKey] && activeBackground) {
-        // console.log(Game.backgroundAudio.volume);
-        Game.backgroundAudio.volume = Game.backgroundAudio.volume === 0 ? .1 : 0;
-        activeBackground = false;
+    if(Game.activeBackground) {
+        Game.backgroundAudio.play();
+    } else {
+        Game.backgroundAudio.pause();
     }
     Game.ball.update();
     Game.playerOne.update();
@@ -781,7 +791,7 @@ function drawNet() {
     let y = 0;
     
     while (y < height) {
-        ctx.fillRect(x, y + step / 4, w, step / 2);
+            ctx.fillRect(x, y + step / 4, w, step / 2);
         y += step;
     }
 }
@@ -802,6 +812,7 @@ function draw() {
 
     ctx.fillStyle = "#fff";
     drawNet();
+    drawScore();    
 
     Game.ball.draw();
     Game.playerOne.draw();
@@ -810,9 +821,6 @@ function draw() {
     if (Game.multipleBalls) {
         Game.ballList.forEach(_ball => _ball.draw())
     }  
-
-    drawNet();
-    drawScore();
 
     if (isShaking) {
         postShake();

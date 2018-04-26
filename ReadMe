@@ -7,16 +7,20 @@ Intro:
     - CSS animation vs Canvas.
     - and we don't care if you don't care!
     - no matter the language or tool the first ting you have to build a game.
+
+- little project with game loop
+- SET EXPECTATIONS
+
 - time to talk about Ping-pong
     - the game demo (where need it explain concept)
-        - strip down game b
+        - strip down game a
         - add pve b
         - add color a
-        - add tween a
         - add trail b
-        - add scale ball & paddle a
+        - add scale ball a
         - add shake a
         - add particle b
         - add sound (cuz why not) a
         - add eye (for personality) b
-- final comp (0 to 100); a
+- final comp (0 to 100);
+- 
